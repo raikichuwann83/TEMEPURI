@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>受付ブース</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style>
+body {
+  text-align: center;
+  background: #ffe4f0;
+}
+
+#qrcode {
+  margin-top: 50px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>タッチしてスタート！</h1>
+<button onclick="start()">START</button>
+
+<div id="qrcode"></div>
+
+<script>
+function start(){
+  document.getElementById("qrcode").innerHTML = "";
+
+  new QRCode(document.getElementById("qrcode"), {
+    text: "START_CAMERA",
+    width: 200,
+    height: 200
+  });
+}
+</script>
+
+</body>
+</html>
