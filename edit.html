@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>落書きブース</title>
+
+<style>
+body { margin:0; }
+canvas {
+  position: fixed;
+  top:0;
+  left:0;
+}
+#btn {
+  position: fixed;
+  bottom: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="canvas"></canvas>
+<button id="btn" onclick="load()">画像読み込み</button>
+
+<script>
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
+
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight;
+
+// 読み込み
+function load(){
+  const url=prompt("QRの文字貼って！");
+  const img=new Image();
+
+  img.onload=()=>{
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+  };
+
+  img.src=url;
+}
+
+// 落書き
+let draw=false;
+
+canvas.addEventListener("touchstart",e=>{
+  draw=true;
+});
+
+canvas.addEventListener("touchmove",e=>{
+  if(!draw)return;
+
+  const x=e.touches[0].clientX;
+  const y=e.touches[0].clientY;
+
+  ctx.lineWidth=5;
+  ctx.strokeStyle="red";
+
+  ctx.lineTo(x,y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x,y);
+});
+
+canvas.addEventListener("touchend",()=>{
+  draw=false;
+});
+</script>
+
+</body>
+</html>
