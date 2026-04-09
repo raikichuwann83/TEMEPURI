@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>撮影ブース</title>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+body { margin:0; overflow:hidden; }
+
+video {
+  position: fixed;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+#reader {
+  position: fixed;
+  width: 300px;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+}
+</style>
+</head>
+
+<body>
+
+<video id="video" autoplay></video>
+<div id="reader"></div>
+
+<script>
+const video = document.getElementById("video");
+
+// カメラ起動
+navigator.mediaDevices.getUserMedia({ video: true })
+.then(stream => video.srcObject = stream);
+
+// QR読み取り
+function onScanSuccess(decodedText) {
+  if(decodedText === "START_CAMERA"){
+    startShoot();
+  }
+}
+
+const html5QrCode = new Html5Qrcode("reader");
+html5QrCode.start(
+  { facingMode: "environment" },
+  {
+    fps: 10,
+    qrbox: 250
+  },
+  onScanSuccess
+);
+
+// 撮影開始（シンプル版）
+function startShoot(){
+  alert("撮影スタート！");
+}
+</script>
+
+</body>
+</html>
