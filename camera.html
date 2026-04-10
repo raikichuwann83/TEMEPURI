@@ -10,11 +10,46 @@
 body { margin:0; overflow:hidden; }
 
 video {
-  position: fixed;
-  width: 100vw;
-  height: 100vh;
-  object-fit: cover;
-  transform: scaleX(-1);
+ <script>
+let video = document.getElementById("video");
+let stream;
+let isQRMode = false;
+
+// カメラ起動
+async function startCamera(mode = "user") {
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+  }
+
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: mode }
+  });
+
+  video.srcObject = stream;
+
+  // 鏡ON/OFF
+  if (mode === "user") {
+    video.style.transform = "scaleX(-1)"; // 鏡
+  } else {
+    video.style.transform = "scaleX(1)"; // 通常
+  }
+}
+
+// 初期は鏡（自撮り）
+startCamera("user");
+
+// QRモードにする
+function startQR() {
+  isQRMode = true;
+  startCamera("environment"); // 背面カメラ（鏡なし）
+}
+
+// 通常に戻る
+function backToNormal() {
+  isQRMode = false;
+  startCamera("user"); // インカメ（鏡）
+}
+</script>
 }
 
 #reader {
