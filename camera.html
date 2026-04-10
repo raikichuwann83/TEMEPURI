@@ -9,15 +9,35 @@
 <style>
 body {
   margin: 0;
-  overflow: hidden;
   background: black;
+  color: white;
+  text-align: center;
+  font-family: sans-serif;
 }
 
-/* カメラ映像 */
+/* カメラ */
 video {
   width: 100vw;
   height: 100vh;
   object-fit: cover;
+}
+
+/* オーバーレイ */
+#overlay {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  text-align: center;
+}
+
+#pose {
+  font-size: 30px;
+  margin-top: 40px;
+}
+
+#count {
+  font-size: 80px;
+  color: red;
 }
 
 /* QR枠 */
@@ -41,8 +61,7 @@ button {
 }
 
 #qrBtn { left: 20px; }
-#backBtn { right: 20px; display: none; }
-
+#backBtn { right: 20px; display:none; }
 </style>
 </head>
 
@@ -50,20 +69,37 @@ button {
 
 <video id="video" autoplay playsinline></video>
 
+<div id="overlay">
+  <div id="pose"></div>
+  <div id="count"></div>
+</div>
+
 <div id="reader"></div>
 
-<button id="qrBtn" onclick="startQR()">QR</button>
+<button id="qrBtn" onclick="startQR()">QR読み取り</button>
 <button id="backBtn" onclick="backToNormal()">戻る</button>
+
+<!-- 音 -->
+<audio id="shutter" src="shutter.mp3"></audio>
 
 <script>
 let video = document.getElementById("video");
 let stream;
 let html5QrCode;
+let photos = [];
+
+// ポーズ一覧
+const poses = [
+  "① ピース✌️",
+  "② キメ顔😎",
+  "③ 目線外し👀",
+  "④ 自由ポーズ✨"
+];
 
 // カメラ起動
-async function startCamera(mode = "user") {
-  if (stream) {
-    stream.getTracks().forEach(track => track.stop());
+async function startCamera(mode="user"){
+  if(stream){
+    stream.getTracks().forEach(t=>t.stop());
   }
 
   stream = await navigator.mediaDevices.getUserMedia({
@@ -72,54 +108,128 @@ async function startCamera(mode = "user") {
 
   video.srcObject = stream;
 
-  // 鏡ON/OFF
-  if (mode === "user") {
-    video.style.transform = "scaleX(-1)";
-  } else {
-    video.style.transform = "scaleX(1)";
-  }
+  // 鏡
+  video.style.transform = (mode==="user") ? "scaleX(-1)" : "scaleX(1)";
 }
 
-// 初期：インカメ（鏡）
+// 初期
 startCamera("user");
 
-// QR読み取り開始
-function startQR() {
-  document.getElementById("reader").style.display = "block";
-  document.getElementById("qrBtn").style.display = "none";
-  document.getElementById("backBtn").style.display = "block";
+// QR開始
+function startQR(){
+  document.getElementById("reader").style.display="block";
+  document.getElementById("qrBtn").style.display="none";
+  document.getElementById("backBtn").style.display="block";
 
   startCamera("environment");
 
   html5QrCode = new Html5Qrcode("reader");
-
   html5QrCode.start(
     { facingMode: "environment" },
-    { fps: 10, qrbox: 200 },
-    (decodedText) => {
-      if(decodedText === "START_CAMERA"){
+    { fps:10, qrbox:200 },
+    (text)=>{
+      if(text.includes("session")){
+        html5QrCode.stop();
+        backToNormal();
         startShoot();
       }
     }
   );
 }
 
-// 通常に戻る
-function backToNormal() {
-  document.getElementById("reader").style.display = "none";
-  document.getElementById("qrBtn").style.display = "block";
-  document.getElementById("backBtn").style.display = "none";
-
-  if (html5QrCode) {
-    html5QrCode.stop();
-  }
+// 戻る
+function backToNormal(){
+  document.getElementById("reader").style.display="none";
+  document.getElementById("qrBtn").style.display="block";
+  document.getElementById("backBtn").style.display="none";
 
   startCamera("user");
 }
 
-// 撮影スタート
-function startShoot(){
-  alert("撮影スタート！");
+// 撮影開始
+async function startShoot(){
+  photos = [];
+
+  for(let i=0;i<4;i++){
+    await showPose(i);
+    await countdown();
+    takePhoto();
+    await preview();
+  }
+
+  finish();
+}
+
+// ポーズ表示
+function showPose(i){
+  return new Promise(resolve=>{
+    document.getElementById("pose").textContent = poses[i];
+    setTimeout(resolve,1500);
+  });
+}
+
+// カウントダウン
+function countdown(){
+  return new Promise(resolve=>{
+    let c = 3;
+    let el = document.getElementById("count");
+    el.textContent = c;
+
+    let timer = setInterval(()=>{
+      c--;
+      if(c>0){
+        el.textContent = c;
+      }else{
+        clearInterval(timer);
+        el.textContent = "📸";
+        document.getElementById("shutter").play();
+        resolve();
+      }
+    },1000);
+  });
+}
+
+// 撮影
+function takePhoto(){
+  let canvas = document.createElement("canvas");
+  let ctx = canvas.getContext("2d");
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  // 鏡で保存
+  ctx.translate(canvas.width,0);
+  ctx.scale(-1,1);
+  ctx.drawImage(video,0,0);
+
+  photos.push(canvas);
+}
+
+// プレビュー
+function preview(){
+  return new Promise(resolve=>{
+    let canvas = photos[photos.length-1];
+    video.style.display="none";
+
+    let img = document.createElement("img");
+    img.src = canvas.toDataURL();
+    img.style.width="100vw";
+    img.style.height="100vh";
+    img.style.objectFit="cover";
+    document.body.appendChild(img);
+
+    setTimeout(()=>{
+      document.body.removeChild(img);
+      video.style.display="block";
+      resolve();
+    },2000);
+  });
+}
+
+// 終了
+function finish(){
+  document.getElementById("pose").textContent="撮影完了！";
+  document.getElementById("count").textContent="QRを表示予定";
 }
 </script>
 
